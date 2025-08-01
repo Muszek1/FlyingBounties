@@ -1,0 +1,33 @@
+menu:
+  size: 36
+  title: "&#00FFAA&lZlecenia"
+  pagination-format: "%title% &8[&7%page%/%total%&8]"
+  items:
+    bounties:
+      slot-start: 0
+      material: PAPER
+      name: "&#FFD700&lZlecenie &#FFFFFF#%id%"
+      lore:
+        - "&#AAAAAAWystawił: &#FFFFFF%issuer%"
+        - "&#AAAAAACel: &#FFFFFF%target%"
+        - "&#AAAAAAKwota: &#00FF00%amount%$"
+        - "&#AAAAAAWygaśnie: &f%expires%"
+  controls:
+    prev:
+      slot: 27
+      material: ARROW
+      name: "&#FFAA00&l« Poprzednia"
+      lore:
+        - "&#CCCCCCKliknij, aby przejść"
+    next:
+      slot: 35
+      material: ARROW
+      name: "&#00AAFF&lNastępna »"
+      lore:
+        - "&#CCCCCCKliknij, aby przejść"
+    close:
+      slot: 31
+      material: BARRIER
+      name: "&#FF5555&lZamknij"
+      lore:
+        - "&#CCCCCCKliknij, aby zamknąć"

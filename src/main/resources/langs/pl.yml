@@ -1,0 +1,25 @@
+Not_A_Player_Message: "&c> &fMusisz być graczem, aby użyć tej komendy!"
+Player_Not_Found: "&c> &fGracz %player% nie został znaleziony!"
+Mob_Not_Found: "&c> &fMob %mob% nie został znaleziony!"
+No_Permissions: "&c> &fNie masz uprawnień, aby to zrobić!"
+Plugin_Reloaded: "&a> &fPomyślnie przeładowano plugin PlayerBounty!"
+Wrong_Number: "&c> &fPodałeś niepoprawną liczbę!"
+Help:
+  - "&e=== Komendy PlayerBounty ==="
+  - "&6/zlecenia pomoc &8– &7Pokaż tę pomoc"
+  - "&6/zlecenia wystaw <gracz> <kwota> &8– &7Wystaw zlecenie na gracza"
+  - "&6/zlecenia menu &8– &7Otwórz graficzne menu zleceń"
+  - "&6/zlecenia reload &8– &7Przeładuj konfigurację i pliki językowe"
+
+Bounty:
+  Complete: "&e> &fZlecenie #%id% na gracza &6%player%&e zostało wykonane przez &6%killer%&e! Otrzymał &6%amount%$&e."
+  Created: "&e> &fWystawiłeś zlecenie na gracza &6%player%&f za &a%price%$"
+  Create_Usage: "&e> Użycie: /zlecenia wystaw <gracz> <kwota>"
+  Not_Enough_Money: "&c> &fNie masz wystarczająco środków na koncie."
+  Expired: "&eZlecenie #%id% na gracza &6%player% &ewygasło i zostało usunięte."
+  Save_Error: "&c> &fWystąpił błąd podczas zapisywania zlecenia."
+  Create_Broadcast: "&e> &fGracz &6%issuer% &fwystawił zlecenie na &6%player% &fza &a%price%$"
+  Not_Found: "&c> &fNie znaleziono zlecenia o ID %id%."
+  Limit_Reached: "&c> &fOsiągnąłeś maksymalną liczbę aktywnych zleceń: %limit%!"
+Gui:
+  Usage: "&e> &fUżycie: /zlecenia menu"

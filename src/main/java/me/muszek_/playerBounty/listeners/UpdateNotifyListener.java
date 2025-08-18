@@ -24,8 +24,8 @@ public class UpdateNotifyListener implements Listener {
 		if (!plugin.isUpdateAvailable()) return;
 
 		Bukkit.getScheduler().runTaskLater(plugin, () -> {
-			player.sendMessage(Colors.color("&7[&2PlayerBounty&7] &fPlugin &2PlayerBounty&f has new update " +
-					plugin.getLatestVersion() + "&f! Check:&b https://www.spigotmc.org/resources/124041/"));
+			player.sendMessage(Colors.color("&7[&2FlyingBounties&7] &fPlugin &2FlyingBounties&f has new update " +
+					plugin.getLatestVersion() + "&f! Check:&b https://www.spigotmc.org/resources/128132"));
 		}, 60L);
 	}
 }

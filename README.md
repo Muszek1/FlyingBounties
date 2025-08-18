@@ -3,7 +3,7 @@
 
 ## Links
 
-//bStats: https://bstats.org/plugin/bukkit/EpicTroll/25451
+//bStats: https://bstats.org/plugin/bukkit/flyingBounties/26963
 
 Discord: https://discord.gg/cT5MxqAYTd
 
@@ -17,7 +17,7 @@ Discord: https://discord.gg/cT5MxqAYTd
 
 ## Documentation
 
-//Visit the spigot page: https://spigotmc.org/resources/124041/
+//Visit the spigot page: https://spigotmc.org/resources/128132/
 
 
 

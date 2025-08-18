@@ -12,7 +12,7 @@ public class PlayerBountyCommandHelp extends SubCommand {
 
 	@Override
 	public String getName() {
-		return "help";
+		return "pomoc";
 	}
 
 	@Override
@@ -22,7 +22,7 @@ public class PlayerBountyCommandHelp extends SubCommand {
 
 	@Override
 	public String getSyntax() {
-		return "/troll help";
+		return "/zlecenia help";
 	}
 
 	@Override
@@ -35,7 +35,7 @@ public class PlayerBountyCommandHelp extends SubCommand {
 
 	@Override
 	public String getPermission() {
-		return "playerbounty.help";
+		return "playerbounty.pomoc";
 	}
 
 	@Override

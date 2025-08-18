@@ -3,74 +3,149 @@ package me.muszek_.playerBounty.tasks;
 import me.muszek_.playerBounty.Colors;
 import me.muszek_.playerBounty.PlayerBounty;
 import me.muszek_.playerBounty.settings.Settings;
+import net.milkbowl.vault.economy.Economy;
+import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ExpireBountiesTask extends BukkitRunnable {
     private final PlayerBounty plugin;
     private final File bountyFile;
-    private final FileConfiguration config;
 
     public ExpireBountiesTask(PlayerBounty plugin) {
         this.plugin = plugin;
         File dataFolder = plugin.getDataFolder();
         if (!dataFolder.exists()) dataFolder.mkdirs();
         this.bountyFile = new File(dataFolder, "bounties.yml");
-        this.config = YamlConfiguration.loadConfiguration(bountyFile);
     }
 
     @Override
     public void run() {
+        if (!bountyFile.exists()) return;
         YamlConfiguration cfg = YamlConfiguration.loadConfiguration(bountyFile);
         ConfigurationSection section = cfg.getConfigurationSection("bounties");
         if (section == null) return;
 
         Instant now = Instant.now();
-        List<String> toRemove = new ArrayList<>();
+        List<String> expiredIds = new ArrayList<>();
 
         for (String key : section.getKeys(false)) {
-            String path = "bounties." + key;
-            String expiresStr = cfg.getString(path + ".expires");
+            String expiresStr = cfg.getString("bounties." + key + ".expires");
             if (expiresStr == null) continue;
-            Instant expires;
             try {
-                expires = Instant.parse(expiresStr);
+                Instant expires = Instant.parse(expiresStr);
+                if (now.isAfter(expires)) expiredIds.add(key);
             } catch (Exception ex) {
-                plugin.getLogger().warning("Nieprawidłowy format daty wygaśnięcia dla zlecenia #" + key);
-                continue;
-            }
-            if (now.isAfter(expires)) {
-                toRemove.add(key);
+                plugin.getLogger().warning("Invalid expires format for bounty #" + key + " (" + ex.getMessage() + ")");
             }
         }
 
-        if (toRemove.isEmpty()) return;
+        if (expiredIds.isEmpty()) return;
 
-        for (String key : toRemove) {
-            String path = "bounties." + key;
-            String target = cfg.getString(path + ".target", "nieznany");
-            cfg.set(path, null);
-            String template = Settings.LangKey.BOUNTY_EXPIRED.get();
-            String msg = template
-                    .replace("%id%", key)
-                    .replace("%player%", target);
-            Bukkit.broadcastMessage(Colors.color(msg));
+        Map<String, Double> refundsByIssuerName = new HashMap<>();
+        Map<UUID, Double> refundsByIssuerUuid = new HashMap<>();
+
+        for (String id : expiredIds) {
+            String base = "bounties." + id;
+            double amount = cfg.getDouble(base + ".amount", 0.0);
+            String issuerUuidStr = cfg.getString(base + ".issuer-uuid", null);
+            String issuerName = cfg.getString(base + ".issuer", null);
+
+            if (issuerUuidStr != null) {
+                try {
+                    UUID u = UUID.fromString(issuerUuidStr);
+                    refundsByIssuerUuid.put(u, refundsByIssuerUuid.getOrDefault(u, 0.0) + amount);
+                } catch (Exception ignored) {
+                    if (issuerName != null) refundsByIssuerName.put(issuerName, refundsByIssuerName.getOrDefault(issuerName, 0.0) + amount);
+                }
+            } else if (issuerName != null) {
+                refundsByIssuerName.put(issuerName, refundsByIssuerName.getOrDefault(issuerName, 0.0) + amount);
+            } else {
+                plugin.getLogger().warning("Bounty #" + id + " has no issuer recorded, skipping refund.");
+            }
+        }
+
+        Economy economy = null;
+        var reg = Bukkit.getServicesManager().getRegistration(Economy.class);
+        if (reg != null) economy = reg.getProvider();
+
+        List<String> refundErrors = new ArrayList<>();
+
+        for (Map.Entry<UUID, Double> e : refundsByIssuerUuid.entrySet()) {
+            UUID uuid = e.getKey();
+            double amount = e.getValue();
+            try {
+                if (economy != null) {
+                    OfflinePlayer off = Bukkit.getOfflinePlayer(uuid);
+                    EconomyResponse r = economy.depositPlayer(off, amount);
+                    if (r == null || !r.transactionSuccess()) {
+                        refundErrors.add("Failed deposit to " + uuid + " : " + (r == null ? "null response" : r.errorMessage));
+                    }
+                } else {
+                    OfflinePlayer off = Bukkit.getOfflinePlayer(uuid);
+                    String name = off.getName();
+                    if (name != null) {
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), String.format("eco give %s %s", name, amount));
+                    } else {
+                        refundErrors.add("No name for uuid " + uuid + ", cannot fallback deposit");
+                    }
+                }
+            } catch (Exception ex) {
+                refundErrors.add("Exception refund to uuid " + uuid + " : " + ex.getMessage());
+            }
+        }
+
+        for (Map.Entry<String, Double> e : refundsByIssuerName.entrySet()) {
+            String name = e.getKey();
+            double amount = e.getValue();
+            try {
+                if (economy != null) {
+                    OfflinePlayer off = Bukkit.getOfflinePlayer(name);
+                    EconomyResponse r = economy.depositPlayer(off, amount);
+                    if (r == null || !r.transactionSuccess()) {
+                        refundErrors.add("Failed deposit to " + name + " : " + (r == null ? "null response" : r.errorMessage));
+                    }
+                } else {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), String.format("eco give %s %s", name, amount));
+                }
+            } catch (Exception ex) {
+                refundErrors.add("Exception refund to " + name + " : " + ex.getMessage());
+            }
+        }
+
+        for (String id : expiredIds) {
+            cfg.set("bounties." + id, null);
         }
 
         try {
             cfg.save(bountyFile);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Nie udało się zapisać pliku bounties.yml po usunięciu przeterminowanych zleceń");
-            e.printStackTrace();
+        } catch (IOException io) {
+            plugin.getLogger().severe("Failed to save bounties.yml after expiring bounties: " + io.getMessage());
+        }
+
+        String template = Settings.LangKey.BOUNTY_EXPIRED.get();
+        for (Map.Entry<String, Double> e : refundsByIssuerName.entrySet()) {
+            String msg = template.replace("%issuer%", e.getKey()).replace("%amount%", String.valueOf(e.getValue()));
+            Bukkit.broadcastMessage(Colors.color(msg));
+        }
+        for (Map.Entry<UUID, Double> e : refundsByIssuerUuid.entrySet()) {
+            OfflinePlayer off = Bukkit.getOfflinePlayer(e.getKey());
+            String name = off.getName() != null ? off.getName() : e.getKey().toString();
+            String msg = template.replace("%issuer%", name).replace("%amount%", String.valueOf(e.getValue()));
+            Bukkit.broadcastMessage(Colors.color(msg));
+        }
+
+        if (!refundErrors.isEmpty()) {
+            plugin.getLogger().warning("Some refunds failed during ExpireBountiesTask:");
+            refundErrors.forEach(s -> plugin.getLogger().warning("  - " + s));
         }
     }
 }

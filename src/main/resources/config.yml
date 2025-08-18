@@ -7,13 +7,13 @@
 ####################################################
 
 settings:
-  locale: eneaw
+  locale: pl
   timezone: Europe/Warsaw
-expire-check-interval-seconds: 3600
+expire-check-interval-seconds: 60
 bounty-default-limit: 3
 
 Bounty:
   #Time in minutes
-  Time: 10
+  Time: 1440
   #If there are several bounties on player, should all be completed on kill = true or one by one (false)?
   Stacked: true

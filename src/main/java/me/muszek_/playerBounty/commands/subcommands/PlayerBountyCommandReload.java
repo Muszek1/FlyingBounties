@@ -29,7 +29,7 @@ public class PlayerBountyCommandReload extends SubCommand {
 
 	@Override
 	public String getPermission() {
-		return "zlecenia.reload";
+		return "playerbounty.reload";
 	}
 
 	@Override

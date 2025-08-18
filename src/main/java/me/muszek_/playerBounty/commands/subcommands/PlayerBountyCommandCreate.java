@@ -22,7 +22,7 @@ public class PlayerBountyCommandCreate extends SubCommand {
 
     @Override
     public String getName() {
-        return "wystaw";
+        return "create";
     }
 
     @Override
@@ -32,12 +32,12 @@ public class PlayerBountyCommandCreate extends SubCommand {
 
     @Override
     public String getSyntax() {
-        return "/bounty wystaw <gracz> <kwota>";
+        return "/bounty create <gracz> <kwota>";
     }
 
     @Override
     public String getPermission() {
-        return "zlecenia.wystaw";
+        return "playerbounty.wystaw";
     }
 
     @Override
@@ -98,7 +98,7 @@ public class PlayerBountyCommandCreate extends SubCommand {
                 }
             }
         }
-        boolean unlimited = player.hasPermission("zlecenia.limit.unlimited");
+        boolean unlimited = player.hasPermission("playerbounty.limit.unlimited");
         int finalLimit = unlimited ? Integer.MAX_VALUE : Math.max(defaultLimit, permissionLimit);
         if (activeCount >= finalLimit) {
             player.sendMessage(Colors.color(

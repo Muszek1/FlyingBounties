@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>me.muszek_</groupId>
-    <artifactId>777-Zlecenia</artifactId>
-    <version>1.0.1</version>
+    <artifactId>FlyingBounties</artifactId>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>PlayerBounty</name>

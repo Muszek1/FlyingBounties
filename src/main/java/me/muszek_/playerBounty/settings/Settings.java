@@ -17,7 +17,7 @@ public final class Settings {
 		WRONG_NUMBER("Wrong_Number"),
 		GUI_USAGE("Gui.Usage"),
 		HELP("Help"),
-
+		BOUNTY_REFUNDED("Bounty.Refunded"),
 		BOUNTY_COMPLETE("Bounty.Complete"),
 		BOUNTY_CREATED("Bounty.Created"),
 		BOUNTY_CREATE_USAGE("Bounty.Create_Usage"),

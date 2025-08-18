@@ -18,7 +18,7 @@ public class PlayerBountyCommandRemove extends SubCommand {
 
     @Override
     public String getName() {
-        return "usun";
+        return "delete";
     }
 
     @Override
@@ -28,12 +28,12 @@ public class PlayerBountyCommandRemove extends SubCommand {
 
     @Override
     public String getSyntax() {
-        return "/bounty usun <id>";
+        return "/bounty delete <id>";
     }
 
     @Override
     public String getPermission() {
-        return "zlecenia.usun";
+        return "playerbounty.usun";
     }
 
     @Override
@@ -61,7 +61,7 @@ public class PlayerBountyCommandRemove extends SubCommand {
         }
 
         String issuer = cfg.getString(path + ".issuer");
-        boolean isAdmin = player.hasPermission("zlecenia.admin");
+        boolean isAdmin = player.hasPermission("playerbounty.admin");
         if (!player.getName().equals(issuer) && !isAdmin) {
             player.sendMessage(Colors.color(Settings.LangKey.NO_PERMISSION.get()));
             return;
@@ -73,7 +73,11 @@ public class PlayerBountyCommandRemove extends SubCommand {
                 .getProvider();
         if (economy != null && amount > 0) {
             economy.depositPlayer(issuer, amount);
-            player.sendMessage(Colors.color("&aZwrócono &e" + amount + " &ado konta gracza &6" + issuer));
+            String refundMsg = Settings.LangKey.BOUNTY_REFUNDED.get()
+                    .replace("%issuer%", issuer)
+                    .replace("%amount%", String.valueOf(amount));
+            player.sendMessage(Colors.color(refundMsg));
+
         }
 
         String target = cfg.getString(path + ".target");
@@ -83,7 +87,7 @@ public class PlayerBountyCommandRemove extends SubCommand {
             cfg.save(bountyFile);
         } catch (IOException e) {
             e.printStackTrace();
-            player.sendMessage(Colors.color("Błąd zapisu do pliku!"));
+            player.sendMessage(Colors.color("Save error!"));
             return;
         }
 

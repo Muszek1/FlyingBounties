@@ -9,7 +9,7 @@ Help:
   - ""
   - "&7• &6/playerbounty help &8- &fShow this help screen"
   - "&7• &6/playerbounty create <player> <price> &8- &fPlace a bounty on a player"
-  - "&7• &6/playerbounty remove <id> &8- &fRemove a bounty (issuer or admin)"
+  - "&7• &6/playerbounty delete <id> &8- &fRemove a bounty (issuer or admin)"
   - "&7• &6/playerbounty &8- &fOpen the graphical bounty menu"
   - ""
   - "&8&m------------------------------------------"
@@ -26,7 +26,7 @@ Bounty:
   Not_Found: "&c> &fBounty with ID %id% not found."
   Removed: "&a> &fRemoved bounty #%id% on player &6%player%&a."
   Remove_Broadcast: "&e> &fBounty #%id% on player &6%player% &e(removed by &6%issuer%&e) has been deleted."
-  Refunded: "&a> &fRefunded &6%amount%$ &ato issuer: &6%issuer%&a."
+  Refunded: "&a> &fRefunded &6%amount%$ &fto issuer: &6%issuer%&a."
   Limit_Reached: "&c> &fYou have reached the maximum number of active bounties: %limit%!"
 Gui:
   Usage: "&e> &fUsage: /playerbounty menu"

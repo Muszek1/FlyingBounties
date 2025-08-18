@@ -50,14 +50,19 @@ public class ExpireBountiesTask extends BukkitRunnable {
 
         if (expiredIds.isEmpty()) return;
 
-        Map<String, Double> refundsByIssuerName = new HashMap<>();
+        Map<String, String> idToTarget = new HashMap<>();
         Map<UUID, Double> refundsByIssuerUuid = new HashMap<>();
+        Map<String, Double> refundsByIssuerName = new HashMap<>();
 
         for (String id : expiredIds) {
             String base = "bounties." + id;
             double amount = cfg.getDouble(base + ".amount", 0.0);
             String issuerUuidStr = cfg.getString(base + ".issuer-uuid", null);
             String issuerName = cfg.getString(base + ".issuer", null);
+            String targetName = cfg.getString(base + ".target-name",
+                    cfg.getString(base + ".target", "unknown"));
+
+            idToTarget.put(id, targetName == null ? "unknown" : targetName);
 
             if (issuerUuidStr != null) {
                 try {
@@ -71,6 +76,24 @@ public class ExpireBountiesTask extends BukkitRunnable {
             } else {
                 plugin.getLogger().warning("Bounty #" + id + " has no issuer recorded, skipping refund.");
             }
+        }
+
+        for (String id : expiredIds) {
+            cfg.set("bounties." + id, null);
+        }
+        try {
+            cfg.save(bountyFile);
+        } catch (IOException io) {
+            plugin.getLogger().severe("Failed to save bounties.yml after expiring bounties: " + io.getMessage());
+        }
+
+        String expiredTemplate = Settings.LangKey.BOUNTY_EXPIRED.get();
+        for (String id : expiredIds) {
+            String target = idToTarget.getOrDefault(id, "unknown");
+            String msg = expiredTemplate
+                    .replace("%id%", id)
+                    .replace("%player%", target);
+            Bukkit.broadcastMessage(Colors.color(msg));
         }
 
         Economy economy = null;
@@ -121,25 +144,19 @@ public class ExpireBountiesTask extends BukkitRunnable {
             }
         }
 
-        for (String id : expiredIds) {
-            cfg.set("bounties." + id, null);
-        }
-
-        try {
-            cfg.save(bountyFile);
-        } catch (IOException io) {
-            plugin.getLogger().severe("Failed to save bounties.yml after expiring bounties: " + io.getMessage());
-        }
-
-        String template = Settings.LangKey.BOUNTY_EXPIRED.get();
+        String refundedTemplate = Settings.LangKey.BOUNTY_REFUNDED.get();
         for (Map.Entry<String, Double> e : refundsByIssuerName.entrySet()) {
-            String msg = template.replace("%issuer%", e.getKey()).replace("%amount%", String.valueOf(e.getValue()));
+            String msg = refundedTemplate
+                    .replace("%issuer%", e.getKey())
+                    .replace("%amount%", String.valueOf(e.getValue()));
             Bukkit.broadcastMessage(Colors.color(msg));
         }
         for (Map.Entry<UUID, Double> e : refundsByIssuerUuid.entrySet()) {
             OfflinePlayer off = Bukkit.getOfflinePlayer(e.getKey());
             String name = off.getName() != null ? off.getName() : e.getKey().toString();
-            String msg = template.replace("%issuer%", name).replace("%amount%", String.valueOf(e.getValue()));
+            String msg = refundedTemplate
+                    .replace("%issuer%", name)
+                    .replace("%amount%", String.valueOf(e.getValue()));
             Bukkit.broadcastMessage(Colors.color(msg));
         }
 

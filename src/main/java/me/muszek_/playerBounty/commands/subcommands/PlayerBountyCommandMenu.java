@@ -26,12 +26,12 @@ public class PlayerBountyCommandMenu extends SubCommand {
 
     @Override
     public String getSyntax() {
-        return "/bounty menu";
+        return "/playerbounty menu";
     }
 
     @Override
     public String getPermission() {
-        return "zlecenia.menu";
+        return "playerbounty.menu";
     }
 
     @Override

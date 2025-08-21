@@ -7,6 +7,7 @@ import me.muszek_.playerBounty.listeners.UpdateNotifyListener;
 import me.muszek_.playerBounty.settings.Settings;
 import me.muszek_.playerBounty.tasks.ExpireBountiesTask;
 import me.muszek_.playerBounty.utils.Logger;
+import me.muszek_.playerBounty.utils.UpdateChecker;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -55,9 +56,20 @@ public final class PlayerBounty extends JavaPlugin {
 		getServer().getPluginManager().registerEvents(new UpdateNotifyListener(this), this);
 
 
-		int pluginId = 26963;
+		int pluginId = 128132;
 		Metrics metrics = new Metrics(this, pluginId);
+		new UpdateChecker(this, 128132).getLatestVersion(version -> {
+			String current = this.getDescription().getVersion();
+			this.latestVersion = version;
+			this.updateAvailable = !current.equalsIgnoreCase(version);
 
+			if (!updateAvailable) {
+				Logger.log(Logger.LogLevel.INFO, "Plugin Player Bounty is up to date.");
+			} else {
+				Logger.log(Logger.LogLevel.WARNING, "Plugin Player Bounty has an update. Update: https://www.spigotmc.org/resources/124041/");
+			}
+
+		});
 
 	}
 

@@ -4,12 +4,14 @@ import me.muszek_.playerBounty.Colors;
 import me.muszek_.playerBounty.PlayerBounty;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 import java.io.File;
 import java.time.Instant;
@@ -53,7 +55,7 @@ public class BountyMenu {
 
         int size = menuConfig.getInt("menu.size", 36);
         int rows = size / 9;
-        int contentRows = rows - 1;           // reserve last row for controls
+        int contentRows = rows - 1;
         int maxPerPage = contentRows * 9;
 
         int totalPages = (keys.size() + maxPerPage - 1) / maxPerPage;
@@ -76,9 +78,6 @@ public class BountyMenu {
         int toIndex = Math.min(fromIndex + maxPerPage, keys.size());
         List<String> pageKeys = keys.subList(fromIndex, toIndex);
 
-        Material mat = Material.valueOf(
-                menuConfig.getString("menu.items.bounties.material", "PAPER").toUpperCase()
-        );
         String nameT = menuConfig.getString("menu.items.bounties.name", "Zlecenie #%id%");
         List<String> loreT = menuConfig.getStringList("menu.items.bounties.lore");
 
@@ -95,7 +94,6 @@ public class BountyMenu {
 
         for (int i = 0; i < pageKeys.size(); i++) {
             String key = pageKeys.get(i);
-            int slot = i;
 
             String issuer = bcfg.getString("bounties." + key + ".issuer", "?");
             String target = bcfg.getString("bounties." + key + ".target-name", "?");
@@ -104,25 +102,26 @@ public class BountyMenu {
             String expires = expiresRaw;
             try {
                 Instant inst = Instant.parse(expiresRaw);
-                expires = DateTimeFormatter
-                        .ofPattern("yyyy-MM-dd HH:mm")
-                        .withZone(ZoneId.systemDefault())
-                        .format(inst);
-            } catch (Exception ignored) {
+                expires = fmt.format(inst);
+            } catch (Exception ignored) {}
+
+            ItemStack item = new ItemStack(Material.PLAYER_HEAD, 1);
+            SkullMeta meta = (SkullMeta) item.getItemMeta();
+            if (target != null && !target.isEmpty() && !target.equals("?")) {
+                OfflinePlayer offp = Bukkit.getOfflinePlayer(target);
+                meta.setOwningPlayer(offp);
             }
 
-            ItemStack item = new ItemStack(mat);
-            ItemMeta meta = item.getItemMeta();
             meta.setDisplayName(Colors.color(nameT.replace("%id%", key)));
 
             String finalExpires = expires;
             List<String> lore = loreT.stream()
                     .map(line -> Colors.color(line
                             .replace("%id%", key)
-                            .replace("%issuer%", issuer)
-                            .replace("%target%", target)
+                            .replace("%issuer%", issuer == null ? "" : issuer)
+                            .replace("%target%", target == null ? "" : target)
                             .replace("%amount%", String.valueOf(amount))
-                            .replace("%expires%", finalExpires)
+                            .replace("%expires%", finalExpires == null ? "" : finalExpires)
                     ))
                     .collect(Collectors.toList());
 
@@ -136,20 +135,47 @@ public class BountyMenu {
             for (String key : controls.getKeys(false)) {
                 ConfigurationSection cs = controls.getConfigurationSection(key);
                 int ctrlSlot = cs.getInt("slot");
-                Material matCtrl = Material.valueOf(
-                        cs.getString("material", "ARROW").toUpperCase()
-                );
+                Material matCtrl = Material.valueOf(cs.getString("material", "ARROW").toUpperCase());
                 ItemStack btn = new ItemStack(matCtrl);
                 ItemMeta bm = btn.getItemMeta();
                 bm.setDisplayName(Colors.color(cs.getString("name", key)));
-                List<String> btnLore = cs.getStringList("lore").stream()
-                        .map(Colors::color).collect(Collectors.toList());
+                List<String> btnLore = cs.getStringList("lore").stream().map(Colors::color).collect(Collectors.toList());
                 bm.setLore(btnLore);
                 btn.setItemMeta(bm);
                 inv.setItem(ctrlSlot, btn);
-
             }
         }
+
+        ConfigurationSection custom = menuConfig.getConfigurationSection("menu.custom");
+        if (custom != null) {
+            for (String key : custom.getKeys(false)) {
+                ConfigurationSection cs = custom.getConfigurationSection(key);
+                int slot = cs.getInt("slot");
+                Material matCustom = Material.valueOf(cs.getString("material", "STONE").toUpperCase());
+                ItemStack it = new ItemStack(matCustom);
+                if (matCustom == Material.PLAYER_HEAD) {
+                    ItemMeta im = it.getItemMeta();
+                    SkullMeta sm = (SkullMeta) im;
+                    String owner = cs.getString("skull-owner", "");
+                    if (owner != null && !owner.isEmpty()) {
+                        OfflinePlayer off = Bukkit.getOfflinePlayer(owner);
+                        sm.setOwningPlayer(off);
+                    }
+                    sm.setDisplayName(Colors.color(cs.getString("name", key)));
+                    List<String> l = cs.getStringList("lore").stream().map(Colors::color).collect(Collectors.toList());
+                    sm.setLore(l);
+                    it.setItemMeta(sm);
+                } else {
+                    ItemMeta im = it.getItemMeta();
+                    im.setDisplayName(Colors.color(cs.getString("name", key)));
+                    List<String> l = cs.getStringList("lore").stream().map(Colors::color).collect(Collectors.toList());
+                    im.setLore(l);
+                    it.setItemMeta(im);
+                }
+                inv.setItem(slot, it);
+            }
+        }
+
 
         player.openInventory(inv);
     }

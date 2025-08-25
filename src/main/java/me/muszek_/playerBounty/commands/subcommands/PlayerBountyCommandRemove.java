@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 public class PlayerBountyCommandRemove extends SubCommand {
@@ -36,18 +37,22 @@ public class PlayerBountyCommandRemove extends SubCommand {
         return "zlecenia.usun";
     }
 
+    private static String nz(String s) {
+        return s == null ? "" : s;
+    }
+
     @Override
     public void perform(Player player, String[] args) {
         if (args.length < 2) {
-            player.sendMessage(Colors.color(Settings.LangKey.BOUNTY_REMOVE_USAGE.get()));
+            player.sendMessage(Colors.color(nz(Settings.LangKey.BOUNTY_REMOVE_USAGE.get())));
             return;
         }
 
-        int id;
+        final int id;
         try {
             id = Integer.parseInt(args[1]);
         } catch (NumberFormatException ex) {
-            player.sendMessage(Colors.color(Settings.LangKey.WRONG_NUMBER.get()));
+            player.sendMessage(Colors.color(nz(Settings.LangKey.WRONG_NUMBER.get())));
             return;
         }
 
@@ -56,47 +61,61 @@ public class PlayerBountyCommandRemove extends SubCommand {
 
         String path = "bounties." + id;
         if (!cfg.contains(path)) {
-            player.sendMessage(Colors.color(Settings.LangKey.BOUNTY_NOT_FOUND.get().replace("%id%", String.valueOf(id))));
+            String msg = nz(Settings.LangKey.BOUNTY_NOT_FOUND.get())
+                    .replace("%id%", String.valueOf(id));
+            player.sendMessage(Colors.color(msg));
             return;
         }
 
         String issuer = cfg.getString(path + ".issuer");
         boolean isAdmin = player.hasPermission("zlecenia.admin");
-        if (!player.getName().equals(issuer) && !isAdmin) {
-            player.sendMessage(Colors.color(Settings.LangKey.NO_PERMISSION.get()));
+        if (!(player.getName().equals(issuer) || isAdmin)) {
+            player.sendMessage(Colors.color(nz(Settings.LangKey.NO_PERMISSION.get())));
             return;
         }
 
         double amount = cfg.getDouble(path + ".amount", 0.0);
-        Economy economy = Bukkit.getServicesManager()
-                .getRegistration(Economy.class)
-                .getProvider();
-        if (economy != null && amount > 0) {
-            economy.depositPlayer(issuer, amount);
-            player.sendMessage(Colors.color("&aZwrócono &e" + amount + " &ado konta gracza &6" + issuer));
-        }
+        String target = cfg.getString(path + ".target-name");
 
-        String target = cfg.getString(path + ".target");
+
         cfg.set(path, null);
-
         try {
             cfg.save(bountyFile);
         } catch (IOException e) {
             e.printStackTrace();
-            player.sendMessage(Colors.color("Błąd zapisu do pliku!"));
+            player.sendMessage(Colors.color("&cBłąd zapisu do pliku!"));
             return;
         }
 
-        player.sendMessage(Colors.color(Settings.LangKey.BOUNTY_REMOVED.get()
+        Economy economy = null;
+        try {
+            var reg = Bukkit.getServicesManager().getRegistration(Economy.class);
+            if (reg != null) economy = reg.getProvider();
+        } catch (Exception ignored) {}
+
+        if (economy != null && amount > 0) {
+            if (issuer != null && !issuer.isEmpty()) {
+                economy.depositPlayer(issuer, amount);
+                player.sendMessage(Colors.color(
+                        Settings.LangKey.BOUNTY_REFUNDED.get()
+                                .replace("%amount%", String.valueOf(amount))
+                                .replace("%issuer%", issuer)
+                ));
+            } else {
+                player.sendMessage(Colors.color("&eUwaga: nie udało się zwrócić nagrody, bo wystawca jest nieznany."));
+            }
+        }
+
+        String removedMsg = nz(Settings.LangKey.BOUNTY_REMOVED.get())
                 .replace("%id%", String.valueOf(id))
-                .replace("%player%", target)
-        ));
-        Bukkit.broadcastMessage(Colors.color(
-                Settings.LangKey.BOUNTY_REMOVE_BROADCAST.get()
-                        .replace("%id%", String.valueOf(id))
-                        .replace("%player%", target)
-                        .replace("%issuer%", player.getName())
-        ));
+                .replace("%player%", nz(target));
+        player.sendMessage(Colors.color(removedMsg));
+
+        String broadcast = nz(Settings.LangKey.BOUNTY_REMOVE_BROADCAST.get())
+                .replace("%id%", String.valueOf(id))
+                .replace("%player%", nz(target))
+                .replace("%issuer%", player.getName());
+        Bukkit.broadcastMessage(Colors.color(broadcast));
     }
 
     @Override
@@ -104,10 +123,10 @@ public class PlayerBountyCommandRemove extends SubCommand {
         if (args.length == 2) {
             File bountyFile = new File(PlayerBounty.getInstance().getDataFolder(), "bounties.yml");
             FileConfiguration cfg = YamlConfiguration.loadConfiguration(bountyFile);
-            if (cfg.contains("bounties")) {
+            if (cfg.contains("bounties") && cfg.getConfigurationSection("bounties") != null) {
                 return cfg.getConfigurationSection("bounties").getKeys(false).stream().toList();
             }
         }
-        return null;
+        return Collections.emptyList();
     }
 }

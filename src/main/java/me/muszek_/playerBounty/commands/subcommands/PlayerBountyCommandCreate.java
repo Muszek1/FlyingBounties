@@ -63,6 +63,12 @@ public class PlayerBountyCommandCreate extends SubCommand {
         String targetName = targetOffline.getName();
         UUID targetUuid = targetOffline.getUniqueId();
 
+        if (player.getUniqueId().equals(targetUuid)) {
+            player.sendMessage(Colors.color(Settings.LangKey.BOUNTY_SELF_NOT_ALLOWED.get()
+                    .replace("%player%", player.getName())));
+            return;
+        }
+
         double amount;
         try {
             amount = Double.parseDouble(args[2]);

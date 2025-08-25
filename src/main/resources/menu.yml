@@ -31,3 +31,10 @@ menu:
       name: "&#FF5555&lZamknij"
       lore:
         - "&#CCCCCCKliknij, aby zamknąć"
+#  custom:
+#    info:
+#      slot: 29
+#      material: BOOK
+#      name: "&#FFFFFF&lInformacje"
+#      lore:
+#        - "&#CCCCCCKonfiguruj menu według potrzeb."

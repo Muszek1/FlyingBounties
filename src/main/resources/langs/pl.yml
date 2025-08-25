@@ -16,6 +16,7 @@ Help:
 
 
 Bounty:
+  Self_Not_Allowed: "&c> &fNie możesz wystawić zlecenia na samego siebie!"
   Complete: "&e> &fZlecenie #%id% na gracza &6%player%&e zostało wykonane przez &6%killer%&e! Otrzymał &6%amount%$&e."
   Created: "&e> &fWystawiłeś zlecenie na gracza &6%player%&f za &a%price%$"
   Create_Usage: "&e> Użycie: /zlecenia wystaw <gracz> <kwota>"
@@ -26,7 +27,7 @@ Bounty:
   Remove_Usage: "&eUżycie: &7/zlecenia usun <id>"
   Not_Found: "&c> &fNie znaleziono zlecenia o ID %id%."
   Removed: "&a> &fUsunięto zlecenie #%id% na gracza &6%player%&a."
-  Remove_Broadcast: "&e> &fZlecenie #%id% na gracza &6%player% &e(usunięte przez &6%issuer%&e) zostało usunięte."
+  Remove_Broadcast: "&e> &fZlecenie #%id% na gracza &6%player% zostało usunięte."
   Refunded: "&a> &fZwrócono &6%amount%$ &ado konta wystawiającego: &6%issuer%&a."
   Limit_Reached: "&c> &fOsiągnąłeś maksymalną liczbę aktywnych zleceń: %limit%!"
 Gui:

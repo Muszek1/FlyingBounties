@@ -1,5 +1,5 @@
 name: FlyingBounties
-version: '1.0.2'
+version: '1.0.3'
 main: me.muszek_.playerBounty.PlayerBounty
 api-version: '1.20'
 depend:

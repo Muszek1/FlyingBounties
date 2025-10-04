@@ -55,7 +55,7 @@ public class BountyMenu {
 
         int size = menuConfig.getInt("menu.size", 36);
         int rows = size / 9;
-        int contentRows = Math.max(rows - 1, 1); // ostatni rząd na kontrolki, minimum 1 rząd zawartości
+        int contentRows = Math.max(rows - 1, 1);
         int maxPerPage = contentRows * 9;
 
         int totalPages = (keys.size() + maxPerPage - 1) / maxPerPage;
@@ -79,7 +79,6 @@ public class BountyMenu {
         int toIndex = Math.min(fromIndex + maxPerPage, keys.size());
         List<String> pageKeys = keys.subList(fromIndex, toIndex);
 
-        // Wymuszamy główkę gracza dla pozycji zleceń
         Material mat = Material.PLAYER_HEAD;
 
         String nameT = menuConfig.getString("menu.items.bounties.name", "Zlecenie #%id%");
@@ -99,25 +98,33 @@ public class BountyMenu {
         for (int i = 0; i < pageKeys.size(); i++) {
             String key = pageKeys.get(i);
 
-            String issuer = bcfg.getString("bounties." + key + ".issuer", "?");
-            String target = bcfg.getString("bounties." + key + ".target-name", "?");
-            double amount = bcfg.getDouble("bounties." + key + ".amount", 0.0D);
-            String expiresRaw = bcfg.getString("bounties." + key + ".expires", "");
+            String basePath = "bounties." + key;
+            String issuer = bcfg.getString(basePath + ".issuer", "?");
+            String target = bcfg.getString(basePath + ".target-name", "?");
+            double amount = bcfg.getDouble(basePath + ".amount", 0.0D);
+            String expiresRaw = bcfg.getString(basePath + ".expires", "");
 
             String expires = expiresRaw;
             try {
                 Instant inst = Instant.parse(expiresRaw);
-                expires = fmt.format(inst); // używamy wybranej strefy czasowej
-            } catch (Exception ignored) {
+                expires = fmt.format(inst);
+            } catch (Exception ignored) {}
+
+            ItemStack displayItem;
+            if (bcfg.contains(basePath + ".item-reward")) {
+                ItemStack reward = bcfg.getItemStack(basePath + ".item-reward");
+                displayItem = (reward != null && !reward.getType().isAir())
+                        ? reward.clone()
+                        : new ItemStack(mat);
+            } else {
+                displayItem = new ItemStack(mat);
             }
 
-            ItemStack item = new ItemStack(mat);
-            ItemMeta meta = item.getItemMeta();
+            ItemMeta meta = displayItem.getItemMeta();
+            if (meta == null) continue;
 
-            // Ustawiamy nazwę
             meta.setDisplayName(Colors.color(nameT.replace("%id%", key)));
 
-            // Ustawiamy lore
             String finalExpires = expires;
             List<String> lore = loreT.stream()
                     .map(line -> Colors.color(line
@@ -128,26 +135,34 @@ public class BountyMenu {
                             .replace("%expires%", finalExpires)
                     ))
                     .collect(Collectors.toList());
-            meta.setLore(lore);
 
-            // Jeśli to główka – ustawiamy właściciela na target
-            if (meta instanceof SkullMeta) {
-                SkullMeta skull = (SkullMeta) meta;
-                // Gdy target jest znany i nie jest placeholderem
-                if (target != null && !target.isEmpty() && !target.equals("?")) {
-                    OfflinePlayer off = Bukkit.getOfflinePlayer(target);
-                    // setOwningPlayer działa dla 1.13+
-                    skull.setOwningPlayer(off);
+            if (bcfg.contains(basePath + ".item-reward")) {
+                ItemStack reward = bcfg.getItemStack(basePath + ".item-reward");
+                if (reward != null && !reward.getType().isAir()) {
+                    String itemName = reward.hasItemMeta() && reward.getItemMeta().hasDisplayName()
+                            ? reward.getItemMeta().getDisplayName()
+                            : reward.getType().name().toLowerCase().replace("_", " ");
+                    lore.add(Colors.color("&7+ Item reward: &f" + itemName));
                 }
-                item.setItemMeta(skull);
-            } else {
-                item.setItemMeta(meta);
             }
 
-            inv.setItem(i, item);
+            meta.setLore(lore);
+
+            if (meta instanceof SkullMeta) {
+                SkullMeta skull = (SkullMeta) meta;
+                if (target != null && !target.isEmpty() && !target.equals("?")) {
+                    OfflinePlayer off = Bukkit.getOfflinePlayer(target);
+                    skull.setOwningPlayer(off);
+                }
+                displayItem.setItemMeta(skull);
+            } else {
+                displayItem.setItemMeta(meta);
+            }
+
+            inv.setItem(i, displayItem);
         }
 
-        // Sekcja kontrolek (nawigacja itd.)
+
         ConfigurationSection controls = menuConfig.getConfigurationSection("menu.controls");
         if (controls != null) {
             for (String ckey : controls.getKeys(false)) {

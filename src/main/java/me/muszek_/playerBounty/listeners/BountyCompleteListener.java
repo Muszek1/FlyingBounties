@@ -86,10 +86,30 @@ public class BountyCompleteListener implements Listener {
         if (toProcess.isEmpty()) return;
 
         double totalReward = 0;
+
         for (String id : toProcess) {
-            totalReward += cfg.getDouble("bounties." + id + ".amount", 0);
+            String base = "bounties." + id;
+            totalReward += cfg.getDouble(base + ".amount", 0);
+
+            if (cfg.contains(base + ".item-reward")) {
+                try {
+                    org.bukkit.inventory.ItemStack item = cfg.getItemStack(base + ".item-reward");
+                    if (item != null && !item.getType().isAir()) {
+                        killer.getInventory().addItem(item);
+                        killer.sendMessage(Colors.color(
+                                Settings.LangKey.BOUNTY_ITEM_REWARD_RECEIVED.get()
+                                        .replace("%item%", item.getType().name())
+                        ));
+
+                    }
+                } catch (Exception ex) {
+                    plugin.getLogger().warning("Error! Nie udało się odczytać item-reward dla bounty #" + id);
+                }
+            }
+
             cfg.set("bounties." + id, null);
         }
+
 
         try {
             cfg.save(bountyFile);

@@ -8,7 +8,7 @@ Help:
   - "&8&m------------------------------------------"
   - ""
   - "&7• &6/zlecenia pomoc &8- &fPokaż ten ekran pomocy"
-  - "&7• &6/zlecenia wystaw <gracz> <kwota> &8- &fWystaw zlecenie na gracza"
+  - "&7• &6/zlecenia wystaw <gracz> <kwota> [item] &8- &fWystaw zlecenie na gracza"
   - "&7• &6/zlecenia usun <id> &8- &fUsuń zlecenie (autor lub admin)"
   - "&7• &6/zlecenia &8- &fOtwórz graficzne menu zleceń"
   - ""
@@ -29,5 +29,9 @@ Bounty:
   Remove_Broadcast: "&e> &fZlecenie #%id% na gracza &6%player% &e(usunięte przez &6%issuer%&e) zostało usunięte."
   Refunded: "&a> &fZwrócono &6%amount%$ &fna konto wystawiającego: &6%issuer%&a."
   Limit_Reached: "&c> &fOsiągnąłeś maksymalną liczbę aktywnych zleceń: %limit%!"
+  Item_Reward_Received: "&a> &fOtrzymano nagrodę przedmiotową: &6%item%"
+  Created_Full: "&a> &fWystawiłeś zlecenie na gracza &6%player% &fza &a%amount%$%item%"
+  Item_Required: "&c> &fMusisz trzymać przedmiot w ręce, aby ustawić go jako nagrodę."
+
 Gui:
   Usage: "&e> &fUżycie: /zlecenia menu"

@@ -29,6 +29,9 @@ public final class Settings {
 		BOUNTY_REMOVE_BROADCAST("Bounty.Remove_Broadcast"),
 		BOUNTY_REMOVE_USAGE("Bounty.Remove_Usage"),
 		BOUNTY_EXPIRED("Bounty.Expired"),
+		BOUNTY_CREATED_FULL("Bounty.Created_Full"),
+		BOUNTY_ITEM_REQUIRED("Bounty.Item_Required"),
+		BOUNTY_ITEM_REWARD_RECEIVED("Bounty.Item_Reward_Received"),
 		BOUNTY_LIMIT_REACHED("Bounty.Limit_Reached");
 
 		private final String path;

@@ -3,6 +3,7 @@ package me.muszek_.playerBounty.listeners;
 import me.muszek_.playerBounty.Colors;
 import me.muszek_.playerBounty.PlayerBounty;
 import me.muszek_.playerBounty.menusystem.BountyMenu;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -15,6 +16,8 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
 
 import java.io.File;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class BountyMenuListener implements Listener {
     private final PlayerBounty plugin;
@@ -105,11 +108,13 @@ public class BountyMenuListener implements Listener {
     }
 
     private int extractPage(String title) {
-        try {
-            int a = title.indexOf('('), b = title.indexOf('/');
-            return Integer.parseInt(title.substring(a + 1, b)) - 1;
-        } catch (Exception ex) {
-            return 0;
+        String plain = ChatColor.stripColor(title);
+        Matcher m = Pattern.compile("(\\d+)\\s*/\\s*(\\d+)").matcher(plain);
+        if (m.find()) {
+            int page1 = Integer.parseInt(m.group(1));
+            return Math.max(0, page1 - 1);
         }
+        return 0;
     }
-}
+    }
+

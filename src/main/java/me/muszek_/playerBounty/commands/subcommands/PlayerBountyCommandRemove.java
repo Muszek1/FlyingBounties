@@ -34,7 +34,7 @@ public class PlayerBountyCommandRemove extends SubCommand {
 
     @Override
     public String getPermission() {
-        return "playerbounty.usun";
+        return "playerbounty.remove";
     }
 
     private static String nz(String s) { return s == null ? "" : s; }

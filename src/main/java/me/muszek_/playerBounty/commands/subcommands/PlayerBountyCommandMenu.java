@@ -21,7 +21,7 @@ public class PlayerBountyCommandMenu extends SubCommand {
 
     @Override
     public String getDescription() {
-        return "Otwiera menu zleceniowe";
+        return "Opens the bounty menu";
     }
 
     @Override
@@ -31,12 +31,11 @@ public class PlayerBountyCommandMenu extends SubCommand {
 
     @Override
     public String getPermission() {
-        return "zlecenia.menu";
+        return "flyingbounties.menu";
     }
 
     @Override
     public void perform(Player player, String[] args) {
-
         menu.open(player);
     }
 

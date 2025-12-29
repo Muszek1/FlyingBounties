@@ -9,6 +9,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
@@ -42,7 +44,16 @@ public class ExpireBountiesTask extends BukkitRunnable {
             if (expiresStr == null) continue;
             try {
                 Instant expires = Instant.parse(expiresStr);
-                if (now.isAfter(expires)) expiredIds.add(key);
+                if (now.isAfter(expires)) {
+                    if (cfg.contains("bounties." + key + ".reward-item")) {
+                        String issuerName = cfg.getString("bounties." + key + ".issuer");
+                        Player issuer = issuerName != null ? Bukkit.getPlayerExact(issuerName) : null;
+                        if (issuer == null || !issuer.isOnline()) {
+                            continue;
+                        }
+                    }
+                    expiredIds.add(key);
+                }
             } catch (Exception ex) {
                 plugin.getLogger().warning("Invalid expires format for bounty #" + key + " (" + ex.getMessage() + ")");
             }
@@ -55,6 +66,21 @@ public class ExpireBountiesTask extends BukkitRunnable {
 
         for (String id : expiredIds) {
             String base = "bounties." + id;
+
+            if (cfg.contains(base + ".reward-item")) {
+                ItemStack item = cfg.getItemStack(base + ".reward-item");
+                String issuerName = cfg.getString(base + ".issuer");
+                if (item != null && issuerName != null) {
+                    Player issuer = Bukkit.getPlayerExact(issuerName);
+                    if (issuer != null && issuer.isOnline()) {
+                        issuer.getInventory().addItem(item).forEach((idx, left) ->
+                            issuer.getWorld().dropItem(issuer.getLocation(), left));
+                        issuer.sendMessage(Colors.color("&eZlecenie #" + id + " wygasło. Przedmiot wrócił do twojego ekwipunku."));
+                    }
+                }
+                continue;
+            }
+
             double amount = cfg.getDouble(base + ".amount", 0.0);
             String issuerUuidStr = cfg.getString(base + ".issuer-uuid", null);
             String issuerName = cfg.getString(base + ".issuer", null);
@@ -82,43 +108,13 @@ public class ExpireBountiesTask extends BukkitRunnable {
         for (Map.Entry<UUID, Double> e : refundsByIssuerUuid.entrySet()) {
             UUID uuid = e.getKey();
             double amount = e.getValue();
-            try {
-                if (economy != null) {
-                    OfflinePlayer off = Bukkit.getOfflinePlayer(uuid);
-                    EconomyResponse r = economy.depositPlayer(off, amount);
-                    if (r == null || !r.transactionSuccess()) {
-                        refundErrors.add("Failed deposit to " + uuid + " : " + (r == null ? "null response" : r.errorMessage));
-                    }
-                } else {
-                    OfflinePlayer off = Bukkit.getOfflinePlayer(uuid);
-                    String name = off.getName();
-                    if (name != null) {
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), String.format("eco give %s %s", name, amount));
-                    } else {
-                        refundErrors.add("No name for uuid " + uuid + ", cannot fallback deposit");
-                    }
-                }
-            } catch (Exception ex) {
-                refundErrors.add("Exception refund to uuid " + uuid + " : " + ex.getMessage());
-            }
+            processRefund(economy, Bukkit.getOfflinePlayer(uuid), amount, uuid.toString(), refundErrors);
         }
 
         for (Map.Entry<String, Double> e : refundsByIssuerName.entrySet()) {
             String name = e.getKey();
             double amount = e.getValue();
-            try {
-                if (economy != null) {
-                    OfflinePlayer off = Bukkit.getOfflinePlayer(name);
-                    EconomyResponse r = economy.depositPlayer(off, amount);
-                    if (r == null || !r.transactionSuccess()) {
-                        refundErrors.add("Failed deposit to " + name + " : " + (r == null ? "null response" : r.errorMessage));
-                    }
-                } else {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), String.format("eco give %s %s", name, amount));
-                }
-            } catch (Exception ex) {
-                refundErrors.add("Exception refund to " + name + " : " + ex.getMessage());
-            }
+            processRefund(economy, Bukkit.getOfflinePlayer(name), amount, name, refundErrors);
         }
 
         for (String id : expiredIds) {
@@ -132,20 +128,47 @@ public class ExpireBountiesTask extends BukkitRunnable {
         }
 
         String template = Settings.LangKey.BOUNTY_EXPIRED.get();
+
         for (Map.Entry<String, Double> e : refundsByIssuerName.entrySet()) {
-            String msg = template.replace("%issuer%", e.getKey()).replace("%amount%", String.valueOf(e.getValue()));
-            Bukkit.broadcastMessage(Colors.color(msg));
+            Bukkit.broadcast(Colors.color(template,
+                "%issuer%", e.getKey(),
+                "%amount%", String.valueOf(e.getValue())
+            ));
         }
+
         for (Map.Entry<UUID, Double> e : refundsByIssuerUuid.entrySet()) {
             OfflinePlayer off = Bukkit.getOfflinePlayer(e.getKey());
-            String name = off.getName() != null ? off.getName() : e.getKey().toString();
-            String msg = template.replace("%issuer%", name).replace("%amount%", String.valueOf(e.getValue()));
-            Bukkit.broadcastMessage(Colors.color(msg));
+            String name = off.getName() != null ? off.getName() : "Nieznany";
+
+            Bukkit.broadcast(Colors.color(template,
+                "%issuer%", name,
+                "%amount%", String.valueOf(e.getValue())
+            ));
         }
 
         if (!refundErrors.isEmpty()) {
             plugin.getLogger().warning("Some refunds failed during ExpireBountiesTask:");
             refundErrors.forEach(s -> plugin.getLogger().warning("  - " + s));
+        }
+    }
+
+    private void processRefund(Economy economy, OfflinePlayer player, double amount, String identifier, List<String> errors) {
+        try {
+            if (economy != null) {
+                EconomyResponse r = economy.depositPlayer(player, amount);
+                if (r == null || !r.transactionSuccess()) {
+                    errors.add("Failed deposit to " + identifier + " : " + (r == null ? "null response" : r.errorMessage));
+                }
+            } else {
+                String name = player.getName();
+                if (name != null) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), String.format("eco give %s %s", name, amount));
+                } else {
+                    errors.add("No name for " + identifier + ", cannot fallback deposit");
+                }
+            }
+        } catch (Exception ex) {
+            errors.add("Exception refund to " + identifier + " : " + ex.getMessage());
         }
     }
 }

@@ -7,7 +7,7 @@
 ####################################################
 
 settings:
-  locale: pl
+  locale: en
   timezone: Europe/Warsaw
 expire-check-interval-seconds: 60
 bounty-default-limit: 3

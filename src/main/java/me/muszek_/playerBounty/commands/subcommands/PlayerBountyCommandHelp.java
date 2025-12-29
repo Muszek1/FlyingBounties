@@ -9,33 +9,29 @@ import java.util.List;
 
 public class PlayerBountyCommandHelp extends SubCommand {
 
-
 	@Override
 	public String getName() {
-		return "pomoc";
+		return "help";
 	}
 
 	@Override
 	public String getDescription() {
-		return "displays the help message";
+		return "Displays the help message";
 	}
 
 	@Override
 	public String getSyntax() {
-		return "/zlecenia help";
+		return "/bounty help";
 	}
 
 	@Override
 	public void perform(Player player, String[] args) {
-
-
 		player.sendMessage(Colors.color(Settings.LangKey.HELP.get()));
-
 	}
 
 	@Override
 	public String getPermission() {
-		return "playerbounty.pomoc";
+		return "flyingbounties.help";
 	}
 
 	@Override

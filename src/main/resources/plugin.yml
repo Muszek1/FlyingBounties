@@ -1,7 +1,6 @@
-name: 777-Zlecenia
-version: '1.0.1'
+name: FlyingBounties
+version: '${project.version}'
 main: me.muszek_.playerBounty.PlayerBounty
-api-version: '1.20'
 depend:
   - Vault
 commands:
@@ -9,6 +8,7 @@ commands:
     description: '&ePlace bounty on players'
     aliases:
       - bounty
-      - zlecenia
+      - fb
+      - flyingbounties
     usage: |-
       /bounty <arg>

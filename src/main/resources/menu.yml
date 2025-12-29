@@ -1,40 +1,44 @@
 menu:
   size: 36
-  title: "&#00FFAA&lZlecenia"
+  title: "&#00FFAA&lBounties"
   pagination-format: "%title% &8[&7%page%/%total%&8]"
   items:
     bounties:
       slot-start: 0
-      material: PAPER
-      name: "&#FFD700&lZlecenie &#FFFFFF#%id%"
-      lore:
-        - "&#AAAAAAWystawił: &#FFFFFF%issuer%"
-        - "&#AAAAAACel: &#FFFFFF%target%"
-        - "&#AAAAAAKwota: &#00FF00%amount%$"
-        - "&#AAAAAAWygaśnie: &f%expires%"
+      name: "&#FFD700&lBounty &#FFFFFF#%id%"
+      lore-money:
+        - "&#AAAAAAIssuer: &#FFFFFF%issuer%"
+        - "&#AAAAAATarget: &#FFFFFF%target%"
+        - "&#AAAAAAPrice: &#00FF00%amount%$"
+        - "&#AAAAAAExpires: &f%expires%"
+      lore-item:
+        - "&#AAAAAAIssuer: &#FFFFFF%issuer%"
+        - "&#AAAAAATarget: &#FFFFFF%target%"
+        - "&#AAAAAAReward: &#00FF00%item%"
+        - "&#AAAAAAExpires: &f%expires%"
   controls:
     prev:
       slot: 27
       material: ARROW
-      name: "&#FFAA00&l« Poprzednia"
+      name: "&#FFAA00&l« Previous"
       lore:
-        - "&#CCCCCCKliknij, aby przejść"
+        - "&#CCCCCCClick to go back"
     next:
       slot: 35
       material: ARROW
-      name: "&#00AAFF&lNastępna »"
+      name: "&#00AAFF&lNext »"
       lore:
-        - "&#CCCCCCKliknij, aby przejść"
+        - "&#CCCCCCClick to go forward"
     close:
       slot: 31
       material: BARRIER
-      name: "&#FF5555&lZamknij"
+      name: "&#FF5555&lClose"
       lore:
-        - "&#CCCCCCKliknij, aby zamknąć"
+        - "&#CCCCCCClick to close"
 #  custom:
 #    info:
 #      slot: 29
 #      material: BOOK
-#      name: "&#FFFFFF&lInformacje"
+#      name: "&#FFFFFF&lInfo"
 #      lore:
-#        - "&#CCCCCCKonfiguruj menu według potrzeb."
+#        - "&#CCCCCCConfigure menu as you wish."

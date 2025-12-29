@@ -1,10 +1,10 @@
 package me.muszek_.playerBounty.settings;
 
-import me.muszek_.playerBounty.Colors;
 import me.muszek_.playerBounty.PlayerBounty;
 import me.muszek_.playerBounty.YamlUpdater;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.io.File;
 import java.util.List;
 
 public final class Settings {
@@ -17,22 +17,23 @@ public final class Settings {
 		WRONG_NUMBER("Wrong_Number"),
 		GUI_USAGE("Gui.Usage"),
 		HELP("Help"),
-		BOUNTY_REFUNDED("Bounty.Refunded"),
+
 		BOUNTY_COMPLETE("Bounty.Complete"),
 		BOUNTY_CREATED("Bounty.Created"),
+		BOUNTY_CREATED_ITEM("Bounty.Created_Item"),
 		BOUNTY_CREATE_USAGE("Bounty.Create_Usage"),
 		BOUNTY_NOT_ENOUGH_MONEY("Bounty.Not_Enough_Money"),
 		BOUNTY_SAVE_ERROR("Bounty.Save_Error"),
 		BOUNTY_BROADCAST("Bounty.Create_Broadcast"),
+		BOUNTY_BROADCAST_ITEM("Bounty.Create_Broadcast_Item"),
 		BOUNTY_NOT_FOUND("Bounty.Not_Found"),
 		BOUNTY_REMOVED("Bounty.Removed"),
 		BOUNTY_REMOVE_BROADCAST("Bounty.Remove_Broadcast"),
 		BOUNTY_REMOVE_USAGE("Bounty.Remove_Usage"),
 		BOUNTY_EXPIRED("Bounty.Expired"),
-		BOUNTY_CREATED_FULL("Bounty.Created_Full"),
-		BOUNTY_ITEM_REQUIRED("Bounty.Item_Required"),
-		BOUNTY_ITEM_REWARD_RECEIVED("Bounty.Item_Reward_Received"),
-		BOUNTY_LIMIT_REACHED("Bounty.Limit_Reached");
+		BOUNTY_LIMIT_REACHED("Bounty.Limit_Reached"),
+		BOUNTY_REFUNDED("Bounty.Refunded"),
+		BOUNTY_SELF_NOT_ALLOWED("Bounty.Self_Not_Allowed");
 
 		private final String path;
 		private String value;
@@ -51,24 +52,21 @@ public final class Settings {
 					Object raw = langConfig.get(key.path);
 					if (raw instanceof List<?>) {
 						@SuppressWarnings("unchecked")
-						List<String> lines = ((List<Object>) raw).stream()
-								.map(Object::toString)
-								.map(Colors::color)
-								.toList();
+						List<String> lines = (List<String>) raw;
 						key.value = String.join("\n", lines);
 					} else {
-						key.value = Colors.color(langConfig.getString(key.path, "§cMissing lang: " + key.path));
+						key.value = langConfig.getString(key.path, "&cBrak tłumaczenia: " + key.path);
 					}
 				} else {
-					key.value = "§cMissing lang: " + key.path;
+					key.value = "&cBrak tłumaczenia: " + key.path;
 				}
 			}
 		}
 	}
 
 	public enum ConfigKey {
-		BOUNTY_TIME("Bounty.Time", 3),
-		BOUNTY_STACKED("Bounty.Stacked", false),
+		BOUNTY_TIME("Bounty.Time", 1440),
+		BOUNTY_STACKED("Bounty.Stacked", true),
 		BOUNTY_LIMIT("Bounty.Limit", 3);
 
 		private final String path;
@@ -98,24 +96,30 @@ public final class Settings {
 		}
 	}
 
-	/**
-	 * Load default config.yml and default Polish language
-	 */
 	public static void load() {
 		PlayerBounty plugin = PlayerBounty.getInstance();
-		YamlUpdater updater = new YamlUpdater(plugin);
-		FileConfiguration config = updater.update("config.yml");
-		FileConfiguration lang = updater.update("langs/pl.yml");
+		plugin.reloadConfig();
 
-		LangKey.load(lang);
+		YamlUpdater updater = new YamlUpdater(plugin);
+
+		FileConfiguration config = updater.update("config.yml");
+
+		updater.update("langs/en.yml");
+		updater.update("langs/pl.yml");
+
+		String locale = config.getString("settings.locale", "en").toLowerCase();
+
+		FileConfiguration langConfig;
+		if (locale.equals("pl")) {
+			langConfig = updater.update("langs/pl.yml");
+		} else {
+			langConfig = updater.update("langs/en.yml");
+		}
+
+		LangKey.load(langConfig);
 		ConfigKey.load(config);
 	}
 
-	/**
-	 * Load config.yml (merged defaults) and specified language
-	 *
-	 * @param langConfig pre-loaded language config
-	 */
 	public static void load(FileConfiguration langConfig) {
 		PlayerBounty plugin = PlayerBounty.getInstance();
 		YamlUpdater updater = new YamlUpdater(plugin);

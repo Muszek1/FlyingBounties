@@ -6,7 +6,7 @@
 
     <groupId>me.muszek_</groupId>
     <artifactId>FlyingBounties</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <packaging>jar</packaging>
 
     <name>PlayerBounty</name>
@@ -45,7 +45,7 @@
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
-                <filtering>false</filtering>
+                <filtering>true</filtering>
             </resource>
         </resources>
     </build>

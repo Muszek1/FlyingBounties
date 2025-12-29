@@ -1,5 +1,6 @@
 package me.muszek_.playerBounty.listeners;
 
+import java.util.Objects;
 import me.muszek_.playerBounty.Colors;
 import me.muszek_.playerBounty.PlayerBounty;
 import me.muszek_.playerBounty.settings.Settings;
@@ -9,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,7 +44,7 @@ public class BountyCompleteListener implements Listener {
         UUID victimId = victim.getUniqueId();
         List<String> matches = new ArrayList<>();
 
-        for (String key : cfg.getConfigurationSection("bounties").getKeys(false)) {
+        for (String key : Objects.requireNonNull(cfg.getConfigurationSection("bounties")).getKeys(false)) {
             String basePath = "bounties." + key;
             String uuidString = cfg.getString(basePath + ".target-uuid");
             if (uuidString == null) continue;
@@ -70,6 +72,7 @@ public class BountyCompleteListener implements Listener {
             for (String key : matches) {
                 String createdStr = cfg.getString("bounties." + key + ".created");
                 try {
+                    assert createdStr != null;
                     Instant created = Instant.parse(createdStr);
                     if (created.isBefore(oldestTime)) {
                         oldestTime = created;
@@ -86,30 +89,27 @@ public class BountyCompleteListener implements Listener {
         if (toProcess.isEmpty()) return;
 
         double totalReward = 0;
+        List<String> itemRewardsNames = new ArrayList<>();
 
         for (String id : toProcess) {
-            String base = "bounties." + id;
-            totalReward += cfg.getDouble(base + ".amount", 0);
+            String path = "bounties." + id;
+            if (cfg.contains(path + ".reward-item")) {
+                ItemStack item = cfg.getItemStack(path + ".reward-item");
+                if (item != null) {
+                    killer.getInventory().addItem(item).forEach((idx, left) ->
+                        killer.getWorld().dropItem(killer.getLocation(), left));
 
-            if (cfg.contains(base + ".item-reward")) {
-                try {
-                    org.bukkit.inventory.ItemStack item = cfg.getItemStack(base + ".item-reward");
-                    if (item != null && !item.getType().isAir()) {
-                        killer.getInventory().addItem(item);
-                        killer.sendMessage(Colors.color(
-                                Settings.LangKey.BOUNTY_ITEM_REWARD_RECEIVED.get()
-                                        .replace("%item%", item.getType().name())
-                        ));
-
+                    String itemName = item.getType().name();
+                    if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+                        itemName = item.getItemMeta().getDisplayName();
                     }
-                } catch (Exception ex) {
-                    plugin.getLogger().warning("Error! Nie udało się odczytać item-reward dla bounty #" + id);
+                    itemRewardsNames.add(itemName + " x" + item.getAmount());
                 }
+            } else {
+                totalReward += cfg.getDouble(path + ".amount", 0);
             }
-
-            cfg.set("bounties." + id, null);
+            cfg.set(path, null);
         }
-
 
         try {
             cfg.save(bountyFile);
@@ -117,23 +117,35 @@ public class BountyCompleteListener implements Listener {
             plugin.getLogger().severe("Failed to save bounties.yml: " + e.getMessage());
         }
 
-        double finalTotalReward = totalReward;
-        Bukkit.getScheduler().runTask(plugin, () ->
+        if (totalReward > 0) {
+            double finalTotalReward = totalReward;
+            Bukkit.getScheduler().runTask(plugin, () ->
                 plugin.getServer().dispatchCommand(
-                        Bukkit.getConsoleSender(),
-                        String.format("eco give %s %s", killer.getName(), finalTotalReward)
+                    Bukkit.getConsoleSender(),
+                    String.format("eco give %s %s", killer.getName(), finalTotalReward)
                 )
-        );
+            );
+        }
 
         String idPart = stacked
-                ? String.join(",", toProcess)
-                : toProcess.get(0);
-        String template = Settings.LangKey.BOUNTY_COMPLETE.get();
-        String msg = template
-                .replace("%id%", idPart)
-                .replace("%player%", victim.getName())
-                .replace("%killer%", killer.getName())
-                .replace("%amount%", String.valueOf(totalReward));
-        Bukkit.broadcastMessage(Colors.color(msg));
+            ? String.join(",", toProcess)
+            : toProcess.get(0);
+
+        String rewardString;
+        if (totalReward > 0 && !itemRewardsNames.isEmpty()) {
+            rewardString = totalReward + " + " + String.join(", ", itemRewardsNames);
+        } else if (totalReward > 0) {
+            rewardString = String.valueOf(totalReward);
+        } else {
+            rewardString = String.join(", ", itemRewardsNames);
+        }
+
+        Bukkit.broadcast(Colors.color(
+            Settings.LangKey.BOUNTY_COMPLETE.get(),
+            "%id%", idPart,
+            "%player%", victim.getName(),
+            "%killer%", killer.getName(),
+            "%amount%", rewardString
+        ));
     }
 }

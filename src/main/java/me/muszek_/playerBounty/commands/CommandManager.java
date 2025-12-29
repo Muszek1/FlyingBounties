@@ -18,12 +18,10 @@ import java.util.List;
 
 public class CommandManager implements CommandExecutor, TabCompleter {
 
-	private final PlayerBounty plugin;
 	private final ArrayList<SubCommand> subCommands = new ArrayList<>();
 	private final BountyMenu menu;
 
 	public CommandManager(PlayerBounty plugin) {
-		this.plugin = plugin;
 		this.menu = new BountyMenu(plugin);
 
 		subCommands.add(new PlayerBountyCommandCreate());
@@ -35,7 +33,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
 	@Override
 	public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-		if (!(sender instanceof Player)) {
+		if (!(sender instanceof Player player)) {
 			if (args.length > 0) {
 				for (SubCommand subCommand : getSubCommands()) {
 					if (args[0].equalsIgnoreCase(subCommand.getName())) {
@@ -52,10 +50,8 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 			return true;
 		}
 
-		Player player = (Player) sender;
-
 		if (args.length == 0) {
-			if (!player.hasPermission("zlecenia.menu")) {
+			if (!player.hasPermission("flyingbounties.menu")) {
 				player.sendMessage(Colors.color(Settings.LangKey.NO_PERMISSION.get()));
 				return true;
 			}
@@ -76,7 +72,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 			}
 		}
 
-		player.sendMessage(Colors.color("&c> Nieznana podkomenda. Use /zlecenia help."));
+		player.sendMessage(Colors.color("&c> Unknown subcommand. Use /bounty help."));
 		return true;
 	}
 

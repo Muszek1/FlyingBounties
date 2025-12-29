@@ -21,22 +21,21 @@ public class PlayerBountyCommandMenu extends SubCommand {
 
     @Override
     public String getDescription() {
-        return "Otwiera menu zleceniowe";
+        return "Opens the bounty menu";
     }
 
     @Override
     public String getSyntax() {
-        return "/playerbounty menu";
+        return "/bounty menu";
     }
 
     @Override
     public String getPermission() {
-        return "playerbounty.menu";
+        return "flyingbounties.menu";
     }
 
     @Override
     public void perform(Player player, String[] args) {
-
         menu.open(player);
     }
 

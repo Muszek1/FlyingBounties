@@ -5,12 +5,16 @@ menu:
   items:
     bounties:
       slot-start: 0
-      material: PAPER
       name: "&#FFD700&lBounty &#FFFFFF#%id%"
-      lore:
-        - "&#AAAAAARaised by: &#FFFFFF%issuer%"
+      lore-money:
+        - "&#AAAAAAIssuer: &#FFFFFF%issuer%"
         - "&#AAAAAATarget: &#FFFFFF%target%"
-        - "&#AAAAAAAmount: &#00FF00%amount%$"
+        - "&#AAAAAAPrice: &#00FF00%amount%$"
+        - "&#AAAAAAExpires: &f%expires%"
+      lore-item:
+        - "&#AAAAAAIssuer: &#FFFFFF%issuer%"
+        - "&#AAAAAATarget: &#FFFFFF%target%"
+        - "&#AAAAAAReward: &#00FF00%item%"
         - "&#AAAAAAExpires: &f%expires%"
   controls:
     prev:
@@ -18,16 +22,23 @@ menu:
       material: ARROW
       name: "&#FFAA00&l« Previous"
       lore:
-        - "&#CCCCCCClick to go"
+        - "&#CCCCCCClick to go back"
     next:
       slot: 35
       material: ARROW
       name: "&#00AAFF&lNext »"
       lore:
-        - "&#CCCCCCClick to go"
+        - "&#CCCCCCClick to go forward"
     close:
       slot: 31
       material: BARRIER
       name: "&#FF5555&lClose"
       lore:
         - "&#CCCCCCClick to close"
+#  custom:
+#    info:
+#      slot: 29
+#      material: BOOK
+#      name: "&#FFFFFF&lInfo"
+#      lore:
+#        - "&#CCCCCCConfigure menu as you wish."

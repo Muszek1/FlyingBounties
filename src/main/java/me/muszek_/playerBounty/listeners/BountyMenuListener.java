@@ -3,7 +3,8 @@ package me.muszek_.playerBounty.listeners;
 import me.muszek_.playerBounty.Colors;
 import me.muszek_.playerBounty.PlayerBounty;
 import me.muszek_.playerBounty.menusystem.BountyMenu;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -12,17 +13,17 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
 
 import java.io.File;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class BountyMenuListener implements Listener {
     private final PlayerBounty plugin;
     private final BountyMenu menu;
-    private String baseTitle;
+
+    private Component baseTitleComponent;
+    private String baseTitleString;
+
     private YamlConfiguration menuConfig;
 
     public BountyMenuListener(PlayerBounty plugin) {
@@ -32,42 +33,42 @@ public class BountyMenuListener implements Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
-    private void reloadMenuConfig() {
+    public void reloadMenuConfig() {
         File file = new File(plugin.getDataFolder(), "menu.yml");
         if (!file.exists()) plugin.saveResource("menu.yml", false);
         this.menuConfig = YamlConfiguration.loadConfiguration(file);
-        this.baseTitle = Colors.color(menuConfig.getString("menu.title", "Zlecenia"));
-    }
 
-    @EventHandler
-    public void onInventoryOpen(InventoryOpenEvent e) {
-        if (e.getView().getTitle().startsWith(baseTitle)) {
-            reloadMenuConfig();
-        }
+        String rawTitle = menuConfig.getString("menu.title", "Bounties");
+        this.baseTitleComponent = Colors.color(rawTitle);
+
+        this.baseTitleString = LegacyComponentSerializer.legacySection().serialize(this.baseTitleComponent);
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         String title = e.getView().getTitle();
-        if (!title.startsWith(baseTitle)) return;
+        if (!title.startsWith(baseTitleString)) return;
 
-        Inventory clicked = e.getClickedInventory();
-        Inventory top = e.getView().getTopInventory();
-
-        if (clicked != null && clicked.equals(top)
-                || e.isShiftClick() && e.getView().getBottomInventory().equals(clicked)) {
-            e.setCancelled(true);
-        }
+        e.setCancelled(true);
 
         Player player = (Player) e.getWhoClicked();
-        int slot = e.getRawSlot();
+        Inventory clicked = e.getClickedInventory();
 
+        if (clicked != null && !clicked.equals(e.getView().getTopInventory())) {
+            if (!e.isShiftClick()) {
+                e.setCancelled(false);
+                return;
+            }
+        }
+
+        int slot = e.getRawSlot();
         ConfigurationSection controls = menuConfig.getConfigurationSection("menu.controls");
         if (controls == null) return;
 
         for (String key : controls.getKeys(false)) {
             ConfigurationSection cs = controls.getConfigurationSection(key);
-            if (cs.getInt("slot") != slot) continue;
+            if (cs == null || cs.getInt("slot") != slot) continue;
+
             switch (key.toLowerCase()) {
                 case "prev":
                     int prev = extractPage(title) - 1;
@@ -87,34 +88,42 @@ public class BountyMenuListener implements Listener {
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent e) {
-        if (!e.getView().getTitle().startsWith(baseTitle)) return;
-        Inventory top = e.getView().getTopInventory();
-        for (int slot : e.getRawSlots()) {
-            if (slot < top.getSize()) {
-                e.setCancelled(true);
-                return;
+        if (e.getView().getTitle().startsWith(baseTitleString)) {
+            Inventory top = e.getView().getTopInventory();
+            for (int slot : e.getRawSlots()) {
+                if (slot < top.getSize()) {
+                    e.setCancelled(true);
+                    return;
+                }
             }
         }
     }
 
     @EventHandler
     public void onInventoryMoveItem(InventoryMoveItemEvent e) {
-        String title = e.getDestination().getViewers().stream()
-                .findFirst().map(v -> e.getDestination().getHolder() != null ? "" : baseTitle)
-                .orElse("");
-        if (title.startsWith(baseTitle)) {
+        boolean isMyMenu = e.getDestination().getViewers().stream()
+            .anyMatch(viewer -> viewer.getOpenInventory().getTitle().startsWith(baseTitleString));
+
+        if (isMyMenu) {
             e.setCancelled(true);
         }
     }
 
     private int extractPage(String title) {
-        String plain = ChatColor.stripColor(title);
-        Matcher m = Pattern.compile("(\\d+)\\s*/\\s*(\\d+)").matcher(plain);
-        if (m.find()) {
-            int page1 = Integer.parseInt(m.group(1));
-            return Math.max(0, page1 - 1);
+        try {
+            int openBracket = title.lastIndexOf('[');
+            if (openBracket == -1) {
+                openBracket = title.lastIndexOf('(');
+            }
+
+            int slash = title.lastIndexOf('/');
+
+            if (openBracket != -1 && slash != -1 && slash > openBracket) {
+                String numStr = title.substring(openBracket + 1, slash);
+                return Integer.parseInt(numStr.replaceAll("§.", "").trim()) - 1;
+            }
+        } catch (Exception ex) {
         }
         return 0;
     }
-    }
-
+}

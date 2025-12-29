@@ -1,14 +1,14 @@
 name: FlyingBounties
-version: '1.0.4'
+version: '${project.version}'
 main: me.muszek_.playerBounty.PlayerBounty
-api-version: '1.20'
 depend:
   - Vault
 commands:
-  flyingBounties:
+  playerbounty:
     description: '&ePlace bounty on players'
     aliases:
       - bounty
-      - playerbounty
+      - fb
+      - flyingbounties
     usage: |-
       /bounty <arg>

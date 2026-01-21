@@ -6,6 +6,19 @@
 #                                                  #
 ####################################################
 
+# Type of saving data: 'yaml' or 'mysql'
+storage-type: mysql
+
+database:
+  host: "localhost"
+  port: 3306
+  database: "minecraft"
+  username: "root"
+  password: ""
+  table-prefix: "fb_"
+  use-ssl: false
+
+
 settings:
   locale: en
   timezone: Europe/Warsaw

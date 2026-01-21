@@ -2,6 +2,7 @@ package me.muszek_.playerBounty.menusystem;
 
 import me.muszek_.playerBounty.Colors;
 import me.muszek_.playerBounty.PlayerBounty;
+import me.muszek_.playerBounty.storage.Bounty;
 import me.muszek_.playerBounty.utils.MaterialUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -16,14 +17,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import java.io.File;
-import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class BountyMenu {
     private final PlayerBounty plugin;
@@ -50,159 +46,137 @@ public class BountyMenu {
     public void open(Player player, int page) {
         loadConfig();
 
-        File bFile = new File(plugin.getDataFolder(), "bounties.yml");
-        YamlConfiguration bcfg = YamlConfiguration.loadConfiguration(bFile);
+        // Pobieramy dane asynchronicznie
+        plugin.getBountyStorage().getAllBounties().thenAccept(allBounties -> {
+            // Wracamy na główny wątek, by zbudować inventory
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                int size = menuConfig.getInt("menu.size", 36);
+                int rows = size / 9;
+                int contentRows = rows - 1;
+                int maxPerPage = contentRows * 9;
 
-        List<String> keys = Optional.ofNullable(bcfg.getConfigurationSection("bounties"))
-            .map(sec -> new ArrayList<>(sec.getKeys(false)))
-            .orElseGet(ArrayList::new);
+                int totalPages = (allBounties.size() + maxPerPage - 1) / maxPerPage;
+                if (totalPages < 1) totalPages = 1;
 
-        int size = menuConfig.getInt("menu.size", 36);
-        int rows = size / 9;
-        int contentRows = rows - 1;
-        int maxPerPage = contentRows * 9;
+                int finalPage = page;
+                if (finalPage < 0) finalPage = 0;
+                if (finalPage >= totalPages) finalPage = totalPages - 1;
 
-        int totalPages = (keys.size() + maxPerPage - 1) / maxPerPage;
-        if (totalPages < 1) totalPages = 1;
+                String rawTitle = menuConfig.getString("menu.title", "Zlecenia");
+                String pageFormat = menuConfig.getString("menu.pagination-format", "%title% (%page%/%total%)");
 
-        if (page < 0) page = 0;
-        if (page >= totalPages) page = totalPages - 1;
+                Component title = Colors.color(pageFormat,
+                    "%title%", rawTitle,
+                    "%page%", String.valueOf(finalPage + 1),
+                    "%total%", String.valueOf(totalPages)
+                );
 
-        String rawTitle = menuConfig.getString("menu.title", "Zlecenia");
-        String pageFormat = menuConfig.getString("menu.pagination-format", "%title% (%page%/%total%)");
+                Inventory inv = Bukkit.createInventory(null, size, title);
 
-        Component title = Colors.color(pageFormat,
-            "%title%", rawTitle,
-            "%page%", String.valueOf(page + 1),
-            "%total%", String.valueOf(totalPages)
-        );
+                int fromIndex = finalPage * maxPerPage;
+                int toIndex = Math.min(fromIndex + maxPerPage, allBounties.size());
+                List<Bounty> pageBounties = allBounties.subList(fromIndex, toIndex);
 
-        Inventory inv = Bukkit.createInventory(null, size, title);
+                String nameT = menuConfig.getString("menu.items.bounties.name", "Zlecenie #%id%");
+                List<String> loreMoney = menuConfig.getStringList("menu.items.bounties.lore-money");
+                List<String> loreItem = menuConfig.getStringList("menu.items.bounties.lore-item");
 
-        int fromIndex = page * maxPerPage;
-        int toIndex = Math.min(fromIndex + maxPerPage, keys.size());
-        List<String> pageKeys = keys.subList(fromIndex, toIndex);
+                if (loreMoney.isEmpty() && menuConfig.contains("menu.items.bounties.lore")) {
+                    loreMoney = menuConfig.getStringList("menu.items.bounties.lore");
+                }
+                if (loreItem.isEmpty()) {
+                    loreItem = loreMoney;
+                }
 
-        String nameT = menuConfig.getString("menu.items.bounties.name", "Zlecenie #%id%");
+                String tzString = plugin.getConfig().getString("settings.timezone", "UTC");
+                ZoneId zone;
+                try {
+                    zone = ZoneId.of(tzString);
+                } catch (Exception ex) {
+                    zone = ZoneId.systemDefault();
+                }
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(zone);
 
-        // Pobieramy obie listy lore
-        List<String> loreMoney = menuConfig.getStringList("menu.items.bounties.lore-money");
-        List<String> loreItem = menuConfig.getStringList("menu.items.bounties.lore-item");
+                for (int i = 0; i < pageBounties.size(); i++) {
+                    Bounty bounty = pageBounties.get(i);
 
-        // Fallback dla kompatybilności wstecznej
-        if (loreMoney.isEmpty() && menuConfig.contains("menu.items.bounties.lore")) {
-            loreMoney = menuConfig.getStringList("menu.items.bounties.lore");
-        }
-        if (loreItem.isEmpty()) {
-            loreItem = loreMoney; // Domyślnie to samo jeśli nie ustawiono lore-item
-        }
+                    String amountStr;
+                    ItemStack item;
+                    List<String> activeLoreTemplate;
 
-        String tzString = plugin.getConfig().getString("settings.timezone", "UTC");
-        ZoneId zone;
-        try {
-            zone = ZoneId.of(tzString);
-        } catch (Exception ex) {
-            zone = ZoneId.systemDefault();
-        }
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(zone);
-
-        for (int i = 0; i < pageKeys.size(); i++) {
-            String key = pageKeys.get(i);
-            String path = "bounties." + key;
-
-            String issuer = bcfg.getString(path + ".issuer", "?");
-            String targetName = bcfg.getString(path + ".target-name", "?");
-            String targetUuidStr = bcfg.getString(path + ".target-uuid");
-            double amount = bcfg.getDouble(path + ".amount", 0);
-            String expiresRaw = bcfg.getString(path + ".expires", "");
-
-            String amountStr;
-            boolean isItemReward = false;
-            ItemStack item;
-            List<String> activeLoreTemplate;
-
-            if (bcfg.contains(path + ".reward-item")) {
-                isItemReward = true;
-                activeLoreTemplate = loreItem;
-                ItemStack rewardItem = bcfg.getItemStack(path + ".reward-item");
-                if (rewardItem != null) {
-                    item = rewardItem.clone();
-                    if (rewardItem.hasItemMeta() && rewardItem.getItemMeta().hasDisplayName()) {
-                        amountStr = rewardItem.getItemMeta().getDisplayName();
+                    if (bounty.isItemReward()) {
+                        activeLoreTemplate = loreItem;
+                        ItemStack rewardItem = bounty.getRewardItem();
+                        if (rewardItem != null) {
+                            item = rewardItem.clone();
+                            if (rewardItem.hasItemMeta() && rewardItem.getItemMeta().hasDisplayName()) {
+                                amountStr = rewardItem.getItemMeta().getDisplayName();
+                            } else {
+                                amountStr = formatMaterialName(rewardItem.getType()) + " x" + rewardItem.getAmount();
+                            }
+                        } else {
+                            item = new ItemStack(Material.BARRIER);
+                            amountStr = "Error Item";
+                        }
                     } else {
-                        amountStr = formatMaterialName(rewardItem.getType()) + " x" + rewardItem.getAmount();
-                    }
-                } else {
-                    item = new ItemStack(Material.BARRIER);
-                    amountStr = "Error Item";
-                }
-            } else {
-                activeLoreTemplate = loreMoney;
-                Material headMat = MaterialUtils.getPlayerHead();
-                // Obsługa starszych wersji (1.8-1.12), gdzie głowa gracza to SKULL_ITEM z data 3
-                if (headMat.name().equals("SKULL_ITEM")) {
-                    item = new ItemStack(headMat, 1, (short) 3);
-                } else {
-                    item = new ItemStack(headMat, 1);
-                }
-                amountStr = String.valueOf(amount);
-            }
-
-            String expires = expiresRaw;
-            try {
-                if (!expiresRaw.isEmpty()) {
-                    expires = fmt.format(Instant.parse(expiresRaw));
-                }
-            } catch (Exception ignored) {}
-
-            ItemMeta meta = item.getItemMeta();
-            if (meta != null) {
-                // Ustawianie główki tylko jeśli to nie jest nagroda przedmiotowa
-                if (!isItemReward && meta instanceof SkullMeta) {
-                    OfflinePlayer offPlayer = null;
-                    if (targetUuidStr != null) {
-                        try {
-                            offPlayer = Bukkit.getOfflinePlayer(UUID.fromString(targetUuidStr));
-                        } catch (Exception ignored) {}
-                    }
-                    if (offPlayer == null && targetName != null && !targetName.equals("?")) {
-                        offPlayer = Bukkit.getOfflinePlayer(targetName);
+                        activeLoreTemplate = loreMoney;
+                        Material headMat = MaterialUtils.getPlayerHead();
+                        if (headMat.name().equals("SKULL_ITEM")) {
+                            item = new ItemStack(headMat, 1, (short) 3);
+                        } else {
+                            item = new ItemStack(headMat, 1);
+                        }
+                        amountStr = String.valueOf(bounty.getAmount());
                     }
 
-                    if (offPlayer != null) {
-                        ((SkullMeta) meta).setOwningPlayer(offPlayer);
+                    String expires = "";
+                    try {
+                        expires = fmt.format(bounty.getExpires());
+                    } catch (Exception ignored) {}
+
+                    ItemMeta meta = item.getItemMeta();
+                    if (meta != null) {
+                        if (!bounty.isItemReward() && meta instanceof SkullMeta) {
+                            OfflinePlayer offPlayer = null;
+                            if (bounty.getTargetUuid() != null) {
+                                offPlayer = Bukkit.getOfflinePlayer(bounty.getTargetUuid());
+                            }
+                            if (offPlayer == null && bounty.getTargetName() != null) {
+                                offPlayer = Bukkit.getOfflinePlayer(bounty.getTargetName());
+                            }
+                            if (offPlayer != null) {
+                                ((SkullMeta) meta).setOwningPlayer(offPlayer);
+                            }
+                        }
+
+                        meta.displayName(Colors.color(nameT, "%id%", String.valueOf(bounty.getId())));
+
+                        String finalExpires = expires;
+                        String finalAmountStr = amountStr;
+
+                        List<Component> lore = activeLoreTemplate.stream()
+                            .map(line -> Colors.color(line,
+                                "%id%", String.valueOf(bounty.getId()),
+                                "%issuer%", bounty.getIssuer() != null ? bounty.getIssuer() : "?",
+                                "%target%", bounty.getTargetName() != null ? bounty.getTargetName() : "?",
+                                "%amount%", finalAmountStr,
+                                "%item%", finalAmountStr,
+                                "%expires%", finalExpires
+                            ))
+                            .collect(java.util.stream.Collectors.toList());
+
+                        meta.lore(lore);
+                        item.setItemMeta(meta);
                     }
+                    inv.setItem(i, item);
                 }
 
-                meta.displayName(Colors.color(nameT, "%id%", key));
+                loadControls(inv);
+                loadCustomItems(inv);
 
-                String finalExpires = expires;
-                String finalAmountStr = amountStr;
-
-                List<Component> lore = activeLoreTemplate.stream()
-                    .map(line -> Colors.color(line,
-                        "%id%", key,
-                        "%issuer%", issuer != null ? issuer : "",
-                        "%target%", targetName != null ? targetName : "",
-                        "%amount%", finalAmountStr,
-                        "%item%", finalAmountStr, // Alias dla wygody
-                        "%expires%", finalExpires != null ? finalExpires : ""
-                    ))
-                    .collect(Collectors.toList());
-
-                meta.lore(lore);
-                item.setItemMeta(meta);
-            }
-            inv.setItem(i, item);
-        }
-
-        setupControls(inv, controls -> {
+                player.openInventory(inv);
+            });
         });
-
-        loadControls(inv);
-        loadCustomItems(inv);
-
-        player.openInventory(inv);
     }
 
     private void loadControls(Inventory inv) {
@@ -223,7 +197,7 @@ public class BountyMenu {
 
                 List<Component> btnLore = cs.getStringList("lore").stream()
                     .map(Colors::color)
-                    .collect(Collectors.toList());
+                    .collect(java.util.stream.Collectors.toList());
                 bm.lore(btnLore);
 
                 btn.setItemMeta(bm);
@@ -258,7 +232,7 @@ public class BountyMenu {
 
                 List<Component> l = cs.getStringList("lore").stream()
                     .map(Colors::color)
-                    .collect(Collectors.toList());
+                    .collect(java.util.stream.Collectors.toList());
                 im.lore(l);
 
                 it.setItemMeta(im);
@@ -266,8 +240,6 @@ public class BountyMenu {
             }
         }
     }
-
-    private void setupControls(Inventory inv, java.util.function.Consumer<Void> action) {}
 
     private String formatMaterialName(Material material) {
         String name = material.name().toLowerCase().replace("_", " ");

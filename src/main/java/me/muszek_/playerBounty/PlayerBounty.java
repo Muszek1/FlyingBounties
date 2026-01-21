@@ -1,10 +1,14 @@
 package me.muszek_.playerBounty;
 
+import java.sql.SQLException;
 import me.muszek_.playerBounty.commands.CommandManager;
 import me.muszek_.playerBounty.listeners.BountyCompleteListener;
 import me.muszek_.playerBounty.listeners.BountyMenuListener;
 import me.muszek_.playerBounty.listeners.UpdateNotifyListener;
 import me.muszek_.playerBounty.settings.Settings;
+import me.muszek_.playerBounty.storage.BountyStorage;
+import me.muszek_.playerBounty.storage.SqlBountyStorage;
+import me.muszek_.playerBounty.storage.YamlBountyStorage;
 import me.muszek_.playerBounty.tasks.ExpireBountiesTask;
 import me.muszek_.playerBounty.utils.UpdateChecker;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -15,6 +19,8 @@ import java.io.File;
 public final class PlayerBounty extends JavaPlugin {
 
 	private static PlayerBounty instance;
+	private BountyStorage bountyStorage;
+	private SqlBountyStorage database;
 
 	private String latestVersion;
 	private boolean updateAvailable = false;
@@ -27,6 +33,18 @@ public final class PlayerBounty extends JavaPlugin {
 		FileConfiguration config = updater.update("config.yml");
 
 		setupLanguages(updater, config);
+
+		String storageType = config.getString("storage-type", "yaml");
+		if (storageType.equalsIgnoreCase("mysql")) {
+			this.bountyStorage = new SqlBountyStorage(this);
+		} else {
+			this.bountyStorage = new YamlBountyStorage(this);
+		}
+
+		this.bountyStorage.init();
+
+		Settings.load();
+
 
 		long periodSeconds = config.getLong("expire-check-interval-seconds", 3600L);
 		new ExpireBountiesTask(this).runTaskTimer(this, 20L, periodSeconds * 20L);
@@ -70,10 +88,22 @@ public final class PlayerBounty extends JavaPlugin {
 	@Override
 	public void onDisable() {
 		getLogger().info("Player Bounty plugin has been disabled!");
+
+		if (bountyStorage instanceof SqlBountyStorage) {
+			((SqlBountyStorage) bountyStorage).close();
+		}
+
+		if (bountyStorage != null) {
+			bountyStorage.save();
+		}
 	}
 
 	public static PlayerBounty getInstance() {
 		return instance;
+	}
+
+	public BountyStorage getBountyStorage() {
+		return bountyStorage;
 	}
 
 	public boolean isUpdateAvailable() {
